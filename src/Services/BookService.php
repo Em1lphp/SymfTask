@@ -7,42 +7,21 @@ use App\Entity\Author;
 use App\Entity\Book;
 use App\Repository\BookRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\SerializerInterface;
 
 class BookService
 {
-    public function index(
-        BookRepository $repository,
-        SerializerInterface $serializer
-    ): array // Возвращаем массив данных
+    public function index(BookRepository $repository, SerializerInterface $serializer): array // Возвращаем массив данных
     {
         $books = $repository->findAll();
-        $data = $serializer->normalize($books);
-
-        return $data;
+        return $books;
     }
 
 
-    public function findByAuthor(BookRepository $repository, SerializerInterface $serializer, string $surname): array
-    {
-        $books = $repository->findByAuthorSurname($surname);
-
-        if (empty($books)) {
-            return ['message' => 'No books found for author with surname ' . $surname, 'status' => 404];
-        }
-
-        return $serializer->normalize($books);
-    }
 
 
-    public function show(BookRepository $repository, SerializerInterface $serializer, int $id): array
-    {
-        $book = $repository->find($id);
-        if (!$book) {
-            return ['message' => 'No book found for id ' . $id, 'status' => 404];
-        }
-        return $serializer->normalize($book);
-    }
+
 
 
     public function store(array $data, EntityManagerInterface $entityManager)
@@ -50,35 +29,22 @@ class BookService
         $book = new Book();
         $book->setTitle($data['title']);
         $book->setDescription($data['description']);
+        $book->setPublicDate(new \DateTime($data['public_date']));
 
-        // Проверяем, является ли $data['author'] объектом Author или идентификатором
-        if (isset($data['author'])) {
-            $author = $data['author'];
+        $author = $entityManager->getRepository(Author::class)->find($data['author_id']);
 
-            // Если $author не является объектом Author, предполагая, что это идентификатор
-            if (!($author instanceof Author)) {
-                // Находим объект Author по идентификатору
-                $author = $entityManager->getRepository(Author::class)->find($data['author']);
-            }
-
-            // Если объект Author найден, устанавливаем его для книги
-            if ($author instanceof Author) {
-                $book->setAuthor($author);
-            } else {
-                // Обработка случая, когда автор не найден или не является объектом Author
-                // Можно выбрать другое действие, например, создать нового автора или выдать ошибку
-                // В данном примере просто устанавливаем NULL для автора книги
-                $book->setAuthor(null);
-            }
+        if ($author) {
+            $book->setAuthor($author);
+            $entityManager->persist($book);
+            $entityManager->flush();
+            return new Response('Created book ', Response::HTTP_CREATED);
+        } else {
+//            throw new \InvalidArgumentException('Author not found');
+            return new Response('Invalid book data', Response::HTTP_BAD_REQUEST);
         }
 
-        if (isset($data['public_date'])) {
-            $publicDate = new \DateTime($data['public_date']);
-            $book->setPublicDate($publicDate);
-        }
-
-        $entityManager->persist($book);
-        $entityManager->flush();
     }
+
+
 
 }

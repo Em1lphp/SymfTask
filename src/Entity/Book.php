@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\BookRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: BookRepository::class)]
 class Book
@@ -12,18 +13,19 @@ class Book
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['book'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['book'])]
     private ?string $title = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['book'])]
     private ?string $description = null;
 
-//    #[ORM\Column(length: 255)]
-//    private ?string $Author = null;
-
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Groups(['book'])]
     private ?\DateTimeInterface $public_date = null;
 
     #[ORM\ManyToOne(inversedBy: 'books')]
